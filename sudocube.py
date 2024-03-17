@@ -2,7 +2,6 @@ import time
 import numpy as np
 
 
-# LOWPRI TODO this isn't just shape its cube
 class Shape:
     NA_VAL = -1
     UNSET_VAL = -2
@@ -143,7 +142,7 @@ class Shape:
             print(", ".join([f"{v: 2}" for v in row]))
 
     def _update_loc(self, pos, value):
-        # LOWPRI TODO block hard implemented values
+        # TODO block hard implemented values - commit
         if value < 0 or value >= self.size:
             return False
 
@@ -173,25 +172,11 @@ class Shape:
         # TODO wrap middle layer properly, currently just doing one below in middle section
         # TODO ensure wrap down lines works well 
 
-    def is_valid(self) -> bool:
-        for sy in range(0, self.shape.shape[0] // self.size):
-            for sx in range(0, self.shape.shape[1] // self.size):
-                section = self.shape[sy * self.size:(sy + 1) * self.size, sx * self.size:(sx + 1) * self.size]
-                section_filtered = section[section != self.NA_VAL & section != self.UNSET_VAL]
-                if section.size == 0:
-                    continue
-                if np.max(np.unique(section_filtered, return_counts=True, axis=0)[1]) > 1:
-                    return False
-                if np.max(np.unique(section_filtered, return_counts=True, axis=1)[1]) > 1:
-                    return False
-
-        return True
-
-    def is_win(self) -> bool:        
-        return not(np.any(self.shape == self.UNSET_VAL)) and self.is_valid(self.shape)
-
 
 def _is_valid(shape, size, x, y, v):
+
+    # TODO if x or y on edge, check overhang with same logic as update
+
     if v in shape[y]:
         return False
     if v in shape[:, x]:
@@ -224,14 +209,14 @@ def _solve_backtrack(shape: np.ndarray, size: int, x: int, y: int) -> (bool, np.
 
 
 def solve(shape: Shape):
+    # TODO use whole shape in is valid - do everything inplacew w/ copies of whole shape and all that, no copeis over at end
+
+
     cube_final = Shape(shape.size)
     for sy in range(0, shape.shape.shape[0] // shape.size):
         for sx in range(0, shape.shape.shape[1] // shape.size):
             section = shape.shape[sy * shape.size:(sy + 1) * shape.size, sx * shape.size:(sx + 1) * shape.size]
             res, shape_final = _solve_backtrack(section, shape.size, 0, 0)
-            if shape_final[0, 0] != -1:
-                print(sx, sy, shape_final)
-
             for y, row in enumerate(shape_final):
                 for x, val in enumerate(row):
                     cube_final.update((sx * shape.size + x, sy * shape.size + y), val)
@@ -251,5 +236,3 @@ if __name__ == '__main__':
     print()
     sol.print()
     print(time.time() - time_start)
-
-    # TODO handle edges and overhangs when doing validity checks! just use whole sahpoe
