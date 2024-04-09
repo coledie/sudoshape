@@ -10,12 +10,11 @@ class Cube(Shape):
     NA_VAL = -1
     UNSET_VAL = -2
 
-    def __init__(self, size, init_board=True):
+    def __init__(self, size):
         self.size = size
-        if init_board:
-            self.shape = [np.full((size, size), self.UNSET_VAL, dtype=np.int8) for _ in range(6)]
-            self._init_connections()
-            self._init_board()
+        self.shape = [np.full((size, size), self.UNSET_VAL, dtype=np.int8) for _ in range(6)]
+        self._init_connections()
+        self._init_board()
 
     def _init_connections(self):
         self.connections = [
@@ -150,12 +149,6 @@ class Cube(Shape):
         section[4, 8] = 7
         section[8, 8] = 1
 
-    def copy(obj):
-        obj_new = Cube(obj.size, init_board=False)
-        obj_new.shape = [section for section in obj.shape]
-        obj_new._init_connections()
-        return obj_new
-
     def print(self):
         null = np.full((self.size, self.size), -1, dtype=self.shape[0].dtype)
         for section in [
@@ -171,20 +164,18 @@ class Cube(Shape):
         if value < 0 or value >= self.size:
             return False
 
-        pos = pos[::-1]
-
-        self.shape[section][pos] = value
+        self.shape[section][pos[1], pos[0]] = value
 
         first = 0
         last = self.size - 1
         if pos[0] == first:
-            self.connections[section][1][last, pos[1]] = value
+            self.connections[section][1][last, pos[0]] = value
         if pos[0] == last:
-            self.connections[section][3][first, pos[1]] = value
+            self.connections[section][3][first, pos[0]] = value
         if pos[1] == first:
-            self.connections[section][0][pos[0], last] = value
+            self.connections[section][0][pos[1], last] = value
         if pos[1] == last:
-            self.connections[section][2][pos[0], first] = value
+            self.connections[section][2][pos[1], first] = value
 
         return True
 
@@ -201,20 +192,20 @@ def _is_valid(shape, section, x, y, v):
 
 
 def _solve_backtrack(shape: Shape, section: int, x: int, y: int) -> bool:
-    size = shape.shape[0].shape[0]
-    if x >= size:
-        if y + 1 >= size:
-            return (True, shape)
+    if x == shape.size:
+        if y == shape.size:
+            return True
         return _solve_backtrack(shape, section, 0, y + 1)
-    if x < 0 or y < 0 or x >= size or y >= size:
+    if x < 0 or y < 0 or x > shape.size or y > shape.size:
         raise Exception(f"Out of bounds ({x}, {y})")
-    if shape.shape[section][y, x] == -1:
-        return True, shape
-    if shape.shape[section][y, x] != -2:
-        return _solve_backtrack(shape, section, x + 1, y)
 
     original_value = shape.shape[section][y, x]
-    for v in range(size):
+    if original_value == -1:
+        return True
+    if original_value != -2:
+        return _solve_backtrack(shape, section, x + 1, y)
+
+    for v in range(shape.size):
         if not _is_valid(shape, section, x, y, v):
             continue
 
