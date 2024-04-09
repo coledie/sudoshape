@@ -161,27 +161,22 @@ class Cube(Shape):
             print()
 
     def update(self, section, pos, value):
-        if value < 0 or value >= self.size:
-            return False
-
         self.shape[section][pos[1], pos[0]] = value
 
         first = 0
         last = self.size - 1
-        if pos[0] == first:
-            self.connections[section][1][last, pos[0]] = value
-        if pos[0] == last:
-            self.connections[section][3][first, pos[0]] = value
         if pos[1] == first:
-            self.connections[section][0][pos[1], last] = value
+            self.connections[section][0][last, pos[0]] = value
         if pos[1] == last:
-            self.connections[section][2][pos[1], first] = value
-
-        return True
+            self.connections[section][2][first, pos[0]] = value
+        if pos[0] == first:
+            self.connections[section][1][pos[1], last] = value
+        if pos[0] == last:
+            self.connections[section][3][pos[1], first] = value
 
 
 def _is_valid(shape, section, x, y, v):
-    if v in shape.shape[section][y]:
+    if v in shape.shape[section][y, :]:
         return False
     if v in shape.shape[section][:, x]:
         return False
@@ -193,9 +188,9 @@ def _is_valid(shape, section, x, y, v):
 
 def _solve_backtrack(shape: Shape, section: int, x: int, y: int) -> bool:
     if x == shape.size:
-        if y == shape.size:
-            return True
         return _solve_backtrack(shape, section, 0, y + 1)
+    if y == shape.size:
+        return True
     if x < 0 or y < 0 or x > shape.size or y > shape.size:
         raise Exception(f"Out of bounds ({x}, {y})")
 
@@ -204,7 +199,6 @@ def _solve_backtrack(shape: Shape, section: int, x: int, y: int) -> bool:
         return True
     if original_value != -2:
         return _solve_backtrack(shape, section, x + 1, y)
-
     for v in range(shape.size):
         if not _is_valid(shape, section, x, y, v):
             continue
@@ -214,13 +208,14 @@ def _solve_backtrack(shape: Shape, section: int, x: int, y: int) -> bool:
         if res:
             return True
 
-    shape.update(section, (x, y), original_value)
+    shape.update(section, (x, y), -2)
     return False
 
 
 def solve(shape: Shape):
     for section in range(len(shape.shape)):
-        _solve_backtrack(shape, section, 0, 0)
+        res = _solve_backtrack(shape, section, 0, 0)
+        print(f"Section {section}: {res} -> ")
     return shape
 
 
