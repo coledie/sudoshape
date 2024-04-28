@@ -160,29 +160,48 @@ class Cube(Shape):
                 print(", ".join([f"{v}" for v in row]))
             print()
 
-    def update(self, section, pos, value):
-        self.shape[section][pos[1], pos[0]] = value
-
+    def get_connection(self, section, x, y):
         first = 0
         last = self.size - 1
-        if pos[1] == first:
-            self.connections[section][0][last, pos[0]] = value
-        if pos[1] == last:
-            self.connections[section][2][first, pos[0]] = value
-        if pos[0] == first:
-            self.connections[section][1][pos[1], last] = value
-        if pos[0] == last:
-            self.connections[section][3][pos[1], first] = value
+        if x == first:
+            return self.connections[section][0], last, y
+        if x == last:
+            return self.connections[section][2], first, y
+        if y == first:
+            return self.connections[section][1], x, last
+        if y == last:
+            return self.connections[section][3], x, first
+        
+        return None, x, y
 
+    def update(self, section, pos, value):
+        self.shape[section][pos[1], pos[0]] = value
+        connection, newx, newy = self.get_connection(section, pos[0], pos[1])
+        if connection is not None:
+            connection[newy, newx] = value
+
+
+def isin(v, arr):
+    for value in arr.ravel():
+        if v == value:
+            return True
+    return False
 
 def _is_valid(shape, section, x, y, v):
-    if v in shape.shape[section][y, :]:
+    if isin(v, shape.shape[section][:, x]):
         return False
-    if v in shape.shape[section][:, x]:
+    if isin(v, shape.shape[section][y, :]):
         return False
-    
-    # TODO if x or y on edge, check overhang with same logic as update
 
+    return True
+
+    first = 0
+    last = shape.size - 1
+    connection, newx, newy = shape.get_connection(section, x, y)
+    if y in [first, last] and v in connection[y, :]:
+        return False
+    if x in [first, last] and v in connection[:, x]:
+        return False
     return True
 
 
@@ -215,7 +234,7 @@ def _solve_backtrack(shape: Shape, section: int, x: int, y: int) -> bool:
 def solve(shape: Shape):
     for section in range(len(shape.shape)):
         res = _solve_backtrack(shape, section, 0, 0)
-        print(f"Section {section}: {res} -> ")
+        print(f"Section {section}: {res}")
     return shape
 
 
@@ -223,11 +242,14 @@ if __name__ == '__main__':
     cube = Cube(size=9)
     cube.print()
 
-    # TODO test sudokube solutions in game!!!!!!
-    time_start = time.time()
-    sol = solve(cube)
-    print()
-    print()
-    print()
-    sol.print()
-    print(time.time() - time_start)
+    try:
+        # TODO test sudokube solutions in game!!!!!!
+        time_start = time.time()
+        sol = solve(cube)
+        print()
+        print()
+        print()
+        sol.print()
+        print(time.time() - time_start)
+    except Exception:
+        pass
